@@ -17,6 +17,10 @@
     --line:#333c42;
   }
   *{box-sizing:border-box;}
+  html{
+    height:100%;
+    overscroll-behavior:none;
+  }
   html,body{margin:0;padding:0;}
   body{
     background:var(--ink);
@@ -24,13 +28,41 @@
     font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic",sans-serif;
     line-height:1.6;
     padding:0 0 60px;
-    min-height:100vh;
+    min-height:100%;
+    overscroll-behavior:none;
+    -webkit-overflow-scrolling:touch;
   }
   main{
     max-width:520px;
     margin:0 auto;
     padding:20px;
   }
+  .tabs{
+    display:flex;
+    max-width:520px;
+    margin:0 auto;
+    border-bottom:1px solid var(--line);
+    position:sticky;
+    top:0;
+    background:var(--ink);
+    z-index:10;
+  }
+  .tab{
+    flex:1;
+    text-align:center;
+    padding:14px 0 12px;
+    font-size:14px;
+    color:var(--paper-dim);
+    cursor:pointer;
+    border-bottom:2px solid transparent;
+  }
+  .tab.active{
+    color:var(--brass);
+    border-bottom:2px solid var(--brass);
+    font-weight:600;
+  }
+  .page{display:none;}
+  .page.active{display:block;}
   .card{
     background:var(--surface);
     border:1px solid var(--line);
@@ -89,6 +121,9 @@
     resize:vertical;
     min-height:44px;
     font-family:inherit;
+  }
+  textarea#situation{
+    min-height:52px;
   }
   .score-row{
     display:flex;
@@ -152,66 +187,180 @@
   #analyzeResult.error{
     color:var(--rose);
   }
+  .log-heading{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+    margin-bottom:12px;
+  }
+  .log-heading h2{
+    font-family:Georgia,"Hiragino Mincho ProN",serif;
+    font-weight:400;
+    font-size:17px;
+    margin:0;
+  }
+  .log-heading span{
+    color:var(--paper-dim);
+    font-size:12px;
+  }
+  .stats{
+    display:flex;
+    flex-wrap:wrap;
+    gap:14px;
+    font-size:12.5px;
+    color:var(--paper-dim);
+    margin-bottom:16px;
+  }
+  .stats b{
+    color:var(--paper);
+    font-weight:600;
+  }
+  .entry{
+    border-left:2px solid var(--brass-dim);
+    padding:10px 0 10px 14px;
+    margin-bottom:14px;
+  }
+  .entry .meta{
+    display:flex;
+    justify-content:space-between;
+    font-size:12px;
+    color:var(--paper-dim);
+    margin-bottom:6px;
+  }
+  .entry .situation{
+    font-size:14.5px;
+    margin-bottom:6px;
+    white-space:pre-wrap;
+  }
+  .entry .tags{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    margin-bottom:6px;
+  }
+  .entry .tag{
+    font-size:11.5px;
+    background:var(--surface-2);
+    border:1px solid var(--line);
+    color:var(--paper-dim);
+    padding:3px 8px;
+    border-radius:12px;
+  }
+  .entry .note{
+    font-size:13px;
+    color:var(--paper-dim);
+    font-style:italic;
+    margin-bottom:6px;
+  }
+  .entry .bottom-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    font-size:13px;
+  }
+  .entry .score{
+    color:var(--brass);
+    font-weight:600;
+  }
+  .entry .next{
+    color:var(--paper-dim);
+    font-size:13px;
+    margin-top:2px;
+  }
+  .entry .del{
+    background:none;
+    border:none;
+    color:var(--paper-dim);
+    font-size:12px;
+    cursor:pointer;
+    text-decoration:underline;
+    padding:0;
+  }
+  .empty{
+    color:var(--paper-dim);
+    font-size:13.5px;
+    text-align:center;
+    padding:20px 0;
+  }
 </style>
 </head>
 <body>
 
+<div class="tabs">
+  <div class="tab active" data-page="record">記録</div>
+  <div class="tab" data-page="log">ログ</div>
+  <div class="tab" data-page="analyze">分析</div>
+</div>
+
 <main>
 
-  <div class="card">
-    <div class="field">
-      <label class="field-label">① 状況</label>
-      <input type="text" id="situation">
-    </div>
-
-    <div class="field">
-      <label class="field-label">② 浮かんだ感覚（複数選択可）</label>
-      <div class="chips" id="chips">
-        <div class="chip" data-v="落胆">落胆</div>
-        <div class="chip" data-v="開き直り">開き直り</div>
-        <div class="chip" data-v="諦念">諦念</div>
-        <div class="chip" data-v="慣れ">慣れ</div>
-        <div class="chip" data-v="ストレス">ストレス</div>
-        <div class="chip" data-v="暇">暇</div>
-        <div class="chip" data-v="対人関係">対人関係</div>
-        <div class="chip" data-v="楽観">楽観</div>
+  <div class="page active" id="page-record">
+    <div class="card">
+      <div class="field">
+        <label class="field-label">① 状況</label>
+        <textarea id="situation" rows="2"></textarea>
       </div>
-    </div>
 
-    <div class="field">
-      <label class="field-label">補足（任意）</label>
-      <textarea id="note"></textarea>
-    </div>
-
-    <div class="field">
-      <label class="field-label">③ 思った直後の点数</label>
-      <div class="score-row">
-        <input type="range" id="scoreFirst" min="0" max="100" value="20">
-        <div class="score-num" id="scoreFirstNum">20</div>
+      <div class="field">
+        <label class="field-label">② 浮かんだ感覚（複数選択可）</label>
+        <div class="chips" id="chips">
+          <div class="chip" data-v="落胆">落胆</div>
+          <div class="chip" data-v="開き直り">開き直り</div>
+          <div class="chip" data-v="諦念">諦念</div>
+          <div class="chip" data-v="慣れ">慣れ</div>
+          <div class="chip" data-v="ストレス">ストレス</div>
+          <div class="chip" data-v="暇">暇</div>
+          <div class="chip" data-v="対人関係">対人関係</div>
+          <div class="chip" data-v="楽観">楽観</div>
+        </div>
       </div>
-    </div>
 
-    <div class="field">
-      <label class="field-label">④ 本当の点数</label>
-      <div class="score-row">
-        <input type="range" id="scoreReal" min="0" max="100" value="60">
-        <div class="score-num" id="scoreRealNum">60</div>
+      <div class="field">
+        <label class="field-label">補足（任意）</label>
+        <textarea id="note"></textarea>
       </div>
-    </div>
 
-    <div class="field">
-      <label class="field-label">⑤ これからどうするか</label>
-      <input type="text" id="nextAction">
-    </div>
+      <div class="field">
+        <label class="field-label">③ 思った直後の点数</label>
+        <div class="score-row">
+          <input type="range" id="scoreFirst" min="0" max="100" value="20">
+          <div class="score-num" id="scoreFirstNum">20</div>
+        </div>
+      </div>
 
-    <button class="save" id="saveBtn">記録する</button>
-    <div class="saved-label" id="savedLabel"></div>
+      <div class="field">
+        <label class="field-label">④ 本当の点数</label>
+        <div class="score-row">
+          <input type="range" id="scoreReal" min="0" max="100" value="60">
+          <div class="score-num" id="scoreRealNum">60</div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="field-label">⑤ これからどうするか</label>
+        <textarea id="nextAction" rows="2"></textarea>
+      </div>
+
+      <button class="save" id="saveBtn">記録する</button>
+      <div class="saved-label" id="savedLabel"></div>
+    </div>
   </div>
 
-  <div class="card">
-    <label class="field-label">Claudeに分析してもらう</label>
-    <button class="analyze" id="analyzeBtn">パターンを分析する</button>
-    <div id="analyzeResult"></div>
+  <div class="page" id="page-log">
+    <div class="log-heading">
+      <h2>ログ</h2>
+      <span id="countLabel"></span>
+    </div>
+    <div class="stats" id="stats"></div>
+    <div id="log"></div>
+  </div>
+
+  <div class="page" id="page-analyze">
+    <div class="card">
+      <label class="field-label">Claudeに分析してもらう</label>
+      <button class="analyze" id="analyzeBtn">パターンを分析する</button>
+      <div id="analyzeResult"></div>
+    </div>
   </div>
 
 </main>
@@ -219,6 +368,20 @@
 <script>
   const KEY = 'bwlog_entries_v1';
 
+  // タブ切り替え
+  const tabs = document.querySelectorAll('.tab');
+  const pages = document.querySelectorAll('.page');
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      tabs.forEach(t => t.classList.remove('active'));
+      pages.forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById('page-' + tab.dataset.page).classList.add('active');
+      if (tab.dataset.page === 'log') renderLog();
+    });
+  });
+
+  // チップ選択
   const chipsEl = document.getElementById('chips');
   const selected = new Set();
   chipsEl.querySelectorAll('.chip').forEach(chip => {
@@ -229,6 +392,7 @@
     });
   });
 
+  // スコアスライダー
   const scoreFirstEl = document.getElementById('scoreFirst');
   const scoreFirstNum = document.getElementById('scoreFirstNum');
   scoreFirstEl.addEventListener('input', () => scoreFirstNum.textContent = scoreFirstEl.value);
@@ -237,6 +401,7 @@
   const scoreRealNum = document.getElementById('scoreRealNum');
   scoreRealEl.addEventListener('input', () => scoreRealNum.textContent = scoreRealEl.value);
 
+  // データ入出力
   function loadEntries(){
     try { return JSON.parse(localStorage.getItem(KEY)) || []; }
     catch(e){ return []; }
@@ -249,6 +414,12 @@
     return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
 
+  function fmtDate(iso){
+    const d = new Date(iso);
+    return `${d.getMonth()+1}/${d.getDate()} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+  }
+
+  // 記録する
   const saveBtn = document.getElementById('saveBtn');
   const savedLabel = document.getElementById('savedLabel');
 
@@ -288,6 +459,69 @@
     setTimeout(() => savedLabel.textContent = '', 1800);
   });
 
+  // ログ表示
+  function renderLog(){
+    const entries = loadEntries();
+    const logEl = document.getElementById('log');
+    const countLabel = document.getElementById('countLabel');
+    const statsEl = document.getElementById('stats');
+
+    countLabel.textContent = entries.length ? `${entries.length}件` : '';
+
+    if (!entries.length){
+      logEl.innerHTML = '<div class="empty">まだ記録がないでやんす</div>';
+      statsEl.innerHTML = '';
+      return;
+    }
+
+    const tagCount = {};
+    let realSum = 0, firstSum = 0, gapSum = 0;
+    entries.forEach(e => {
+      (e.tags||[]).forEach(t => tagCount[t] = (tagCount[t]||0)+1);
+      realSum += e.scoreReal;
+      firstSum += e.scoreFirst;
+      gapSum += (e.scoreReal - e.scoreFirst);
+    });
+    const topTag = Object.entries(tagCount).sort((a,b)=>b[1]-a[1])[0];
+    const avgReal = Math.round(realSum / entries.length);
+    const avgFirst = Math.round(firstSum / entries.length);
+    const avgGap = Math.round(gapSum / entries.length);
+    statsEl.innerHTML = `
+      <div>平均（本当）<b>${avgReal}</b></div>
+      <div>平均（直後）<b>${avgFirst}</b></div>
+      <div>ギャップ <b>${avgGap>0?'+':''}${avgGap}</b></div>
+      ${topTag ? `<div>最頻タグ <b>${topTag[0]}</b>（${topTag[1]}回）</div>` : ''}
+    `;
+
+    logEl.innerHTML = entries.slice().reverse().map((e, idxFromEnd) => {
+      const realIdx = entries.length - 1 - idxFromEnd;
+      return `
+        <div class="entry">
+          <div class="meta"><span>${fmtDate(e.date)}</span></div>
+          ${e.situation ? `<div class="situation">${escapeHtml(e.situation)}</div>` : ''}
+          ${e.tags && e.tags.length ? `<div class="tags">${e.tags.map(t=>`<span class="tag">${escapeHtml(t)}</span>`).join('')}</div>` : ''}
+          ${e.note ? `<div class="note">${escapeHtml(e.note)}</div>` : ''}
+          <div class="bottom-row">
+            <span class="score">直後${e.scoreFirst}点 → 本当${e.scoreReal}点</span>
+            <button class="del" data-idx="${realIdx}">削除</button>
+          </div>
+          ${e.nextAction ? `<div class="next">${escapeHtml(e.nextAction)}</div>` : ''}
+        </div>
+      `;
+    }).join('');
+
+    logEl.querySelectorAll('.del').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const idx = parseInt(btn.dataset.idx, 10);
+        const list = loadEntries();
+        list.splice(idx, 1);
+        saveEntries(list);
+        renderLog();
+      });
+    });
+  }
+
+  // 分析
   const analyzeBtn = document.getElementById('analyzeBtn');
   const analyzeResult = document.getElementById('analyzeResult');
 
